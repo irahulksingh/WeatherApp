@@ -44,16 +44,9 @@ namespace WeatherApp.Controllers
         }
         private async Task<WeatherForecast> GetWeatherForecasts()
         {
-            // Get an instance of HttpClient from the factpry that we registered
-            // in Startup.cs
-
-            var client = _clientFactory.CreateClient("API Client");
-
-            // Call the API & wait for response. 
-            // If the API call fails, call it again according to the re-try policy
-            // specified in Startup.cs
+           var client = _clientFactory.CreateClient("API Client");
             var result = await client.GetAsync("/api/location/906057/");
-
+           
             if (result.IsSuccessStatusCode)
             {
                 // Read all of the response and deserialise it into an instace of
