@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using WeatherApp.Models;
 
@@ -12,16 +15,17 @@ namespace WeatherApp.Controllers
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private IHttpClientFactory _clientFactory;
 
         public HomeController(ILogger<HomeController> logger)
         {
             _logger = logger;
         }
 
-        public IActionResult Index()
-        {
-            return View();
-        }
+        //public IActionResult Index()
+        //{
+        //    return View();
+        //}
 
         public IActionResult Privacy()
         {
@@ -33,5 +37,39 @@ namespace WeatherApp.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
+        [ActivatorUtilitiesConstructor]
+        public HomeController(IHttpClientFactory clientFactory)
+        {
+            _clientFactory = clientFactory;
+        }
+        private async Task<WeatherForecast> GetWeatherForecasts()
+        {
+            // Get an instance of HttpClient from the factpry that we registered
+            // in Startup.cs
+
+            var client = _clientFactory.CreateClient("API Client");
+
+            // Call the API & wait for response. 
+            // If the API call fails, call it again according to the re-try policy
+            // specified in Startup.cs
+            var result = await client.GetAsync("/api/location/906057/");
+
+            if (result.IsSuccessStatusCode)
+            {
+                // Read all of the response and deserialise it into an instace of
+                // WeatherForecast class
+                var content = await result.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<WeatherForecast>(content);
+            }
+            return null;
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            var model = await GetWeatherForecasts();
+            // Pass the data into the View
+            return View(model);
+        }
     }
 }
+
